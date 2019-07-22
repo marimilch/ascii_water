@@ -46,7 +46,7 @@ void print(int x, int y, char *video)
     free(vid_string);
 }
 
-void draw(int x, int y, int t, char *video, char gradient[])
+void waver(int x, int y, int t, char *video, char gradient[])
 {
     //get gradient length
     int g_len = get_str_len(gradient);
@@ -97,10 +97,11 @@ void draw(int x, int y, int t, char *video, char gradient[])
                 val -= block_len;
                 --g_pos;
             }
-            if(g_pos<0){
+            if(g_pos<0)
+            {
                 g_pos = 0;
-            }
-            if(g_pos>=g_len){
+            } else if(g_pos>=g_len)
+            {
                 g_pos = g_len-1;
             }
 
@@ -114,16 +115,24 @@ void draw(int x, int y, int t, char *video, char gradient[])
 
 int main(int argc, char *argv[])
 {
-    int x = 80;
-    int y = 20;
+    if (argc != 3)
+    {
+        printf("Usage: ./ascii_water width height\n");
+        printf("Warning: Does not look like Water, lol\n");
+        return 0;
+    }
+
+    int x = atoi(argv[1]);
+    int y = atoi(argv[2]);
+
     char *video = malloc( x*y*sizeof(char) );
-    char gradient[] = " .+x#$§";
+    char gradient[] = " .:+xX$W";
 
     //printf("gradient has length: %d", get_str_len(gradient))
     //allow overflow
     int d = 1;
     for(int i = 0; i < 10; i = i + d){
-        draw(x, y, i, video, gradient);
+        waver(x, y, i, video, gradient);
         print(x, y, video);
         printf("%d", i);
         usleep(10000);
