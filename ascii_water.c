@@ -10,6 +10,11 @@
 #define clear() printf("\033[H\033[J")
 #define PI 3.14159265358979323846
 
+//globals
+double min;
+double max;
+bool min_max_set = false;
+
 int get_str_len(char str[]){
     int g_len = 0;
     for (int i = 0; str[i] != '\0'; ++i)
@@ -60,15 +65,19 @@ void waver(int x, int y, int t, char *video, char gradient[])
             //i is row
             //j is column
             double wave = sin(t*(PI/1000))*(i+j);
-            double len = sqrt(pow(wave+(i-y/2), 2) + pow(wave+(j-x/2), 2));
+            double len = (wave/2) * sqrt(pow(wave+(i-y/2), 2) + pow(wave+(j-x/2), 2));
             vals[i*x + j] = len ;
 
         }
     }
 
-    //find min and max
-    double min = vals[0];
-    double max = vals[0];
+    //find and set min and max (globally)
+    if (!min_max_set){
+        min = vals[0];
+        max = vals[0];
+        min_max_set = true;
+    }
+        
     for (int i = 0; i < x*y; ++i)
     {
         if (vals[i] > max){
