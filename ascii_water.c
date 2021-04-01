@@ -6,6 +6,9 @@
 #include<stdio.h>
 #include<stdbool.h>
 #include<unistd.h>
+#include<limits.h>
+
+#include"video.c"
 
 #define clear() printf("\033[H\033[J")
 #define PI 3.14159265358979323846
@@ -15,111 +18,78 @@ double min;
 double max;
 bool min_max_set = false;
 
-int get_str_len(char str[]){
-    int g_len = 0;
-    for (int i = 0; str[i] != '\0'; ++i)
-    {
-        ++g_len;
+void flat(float *z_map, size_t x, size_t y, float f){
+    for (size_t i = 0; i < x*y; ++i){
+        z_map[i] = f;
     }
-    return g_len;
 }
 
-void rotate(char str[]){
-    int len = get_str_len(str);
-    char first = str[0];
-    for (int i = 0; i < len-1; ++i)
-    {
-        str[i] = str[i+1];
+void copyzmap(float *z_map_from, float *z_map_to, size_t x, size_t y){
+    for (size_t i = 0; i < x*y; ++i){
+        z_map_to[i] = z_map_from[i];
     }
-    str[len-1] = first;
 }
 
-void print(int x, int y, char *video)
-{
-    char *vid_string = malloc( ((x+1)*y+1)*sizeof(double) );
-    for (int i = 0; i < y; ++i)
-    {
-
-        for (int j = 0; j < x; ++j)
-        {
-            vid_string[i*(x+1) + j]= video[i*x + j];
-        }
-        vid_string[i*(x+1)+x] = '\n';
-    }
-    vid_string[y*x] = '\0';
-    printf("%s", vid_string);
-    free(vid_string);
+void swapptrs(void **ptr1, void **ptr2){
+    //swap pointers
+    void *tmp_ptr = *ptr1;
+    *ptr1 = *ptr2;
+    *ptr2 = tmp_ptr;
 }
 
-void waver(int x, int y, int t, char *video, char gradient[])
-{
-    //get gradient length
-    int g_len = get_str_len(gradient);
+void wave(
+    float **z_map_ptr, 
+    float **z_map_before_ptr,
+    float **z_map_temp_ptr,
+    size_t x,
+    size_t y,
+    float t
+){
+    float *z_map = *z_map_ptr;
+    float *z_map_before = *z_map_before_ptr;
+    float *z_map_temp = *z_map_temp_ptr;
 
-    //calculate vals
-    double *vals = malloc( x*y*sizeof(double) );
-    for (int i = 0; i < y; ++i)
-    {
-        for (int j = 0; j < x; ++j)
-        {
-            //i is row
-            //j is column
-            double wave = sin(t*(PI/1000))*(i+j);
-            double len = (wave/2) * sqrt(pow(wave+(i-y/2), 2) + pow(wave+(j-x/2), 2));
-            vals[i*x + j] = len ;
+    float c_2 = .5f;
+    float d = 1;
+    float d_2 = 1;
+    float my = .05f;
+    float t_2 = t * t;
 
+    float myt2 = my * t + 2;
+    float c2t2d2 = c_2 * t_2 / d_2;
+
+    float co0 = (4 - 8 * c2t2d2) / myt2;
+    float co1 = (my * t - 2) / (my * t + 2);
+    float co2 = (2 * c2t2d2) / myt2;
+
+    for (int i = 1; i < y - 1; ++i){
+        for (int j = 1; j < x - 1; ++j){
+
+            float z_cross = 
+                z_map[(i+1) * x + j] + 
+                z_map[(i-1) * x + j] +
+                z_map[i * x + j + 1] +
+                z_map[i * x + j - 1] 
+            ;
+
+            z_map_temp[i * x + j] = 
+                co0 * z_map[i * x + j] +
+                co1 * z_map_before[i * x + j] +
+                co2 * z_cross;
+            ;
         }
     }
 
-    //find and set min and max (globally)
-    if (!min_max_set){
-        min = vals[0];
-        max = vals[0];
-        min_max_set = true;
-    }
-        
-    for (int i = 0; i < x*y; ++i)
-    {
-        if (vals[i] > max){
-            max = vals[i];
-        }
-        if (vals[i] < min){
-            min = vals[i];
-        }
-    }
+    copyzmap(z_map, z_map_before, x, y);
 
-    //prepare gradient
-    double block_len = (max-min)/g_len;
+    swapptrs((void**) z_map_ptr, (void**) z_map_temp_ptr);
+}
 
-    //draw in video
-    for (int i = 0; i < y; ++i)
-    {
-        for (int j = 0; j < x; ++j)
-        {
-            //i is row
-            //j is column
-            int coordinate = i*x + j;
-            int g_pos = g_len;
-            double val = vals[coordinate];
-            double margin = 0.01 * block_len;
-            while ( val > min + margin ){
-                val -= block_len;
-                --g_pos;
-            }
-            if(g_pos<0)
-            {
-                g_pos = 0;
-            } else if(g_pos>=g_len)
-            {
-                g_pos = g_len-1;
-            }
-
-            video[coordinate] = gradient[g_pos];
-        }
-    }
-
-    //free temps
-    free(vals);
+void tipwaterrandomly(float *z_map, size_t x, size_t y){
+    //"tip" in water
+    size_t randX = 1 + rand() * (x-2) / RAND_MAX;
+    size_t randY = 1 + rand() * (y-2) / RAND_MAX;
+    z_map[x * randY + randX] = 0.0f;
 }
 
 int main(int argc, char *argv[])
@@ -134,26 +104,65 @@ int main(int argc, char *argv[])
     int x = atoi(argv[1]);
     int y = atoi(argv[2]);
 
-    char *video = malloc( x*y*sizeof(char) );
-    char gradient[] = " .:+xX$W";
+    // char *gradient = malloc( sizeof(char) * 9 );
+    char *gradient = " .:+xX$WÆ";
+    char *tint = "\e[0;36m\e[44m";
+    // char *gradient = "ÆÑÊŒØMÉËÈÃÂWQBÅæ#NÁþEÄÀHKRŽœXgÐêqÛŠÕÔA€ßpmãâG¶øðé8ÚÜ$ëdÙýèÓÞÖåÿÒb¥FDñáZPäšÇàhû§ÝkŸ®S9žUTe6µOyxÎ¾f4õ5ôú&aü™2ùçw©Y£0VÍL±3ÏÌóC@nöòs¢u‰½¼‡zJƒ%¤Itocîrjv1lí=ïì<>i7†[¿?×}*{+()/»«•¬|!¡÷¦¯—^ª„”“~³º²–°­¹‹›;:’‘‚’˜ˆ¸…·¨´`";
+
+    printf("Create video\n");
+    struct Video *video = createVideo(x,y,gradient,tint);
+
+    printf("Create and init z-map current\n");
+    float *z_map = malloc( sizeof(float) * x * y );
+    flat(z_map, x, y, 0.5f);
+
+    printf("Create and init z-map before\n");
+    float *z_map_before = malloc( sizeof(float) * x * y );
+    flat(z_map_before, x, y, 0.5f);
+
+    printf("Create and init z-map temp\n");
+    float *z_map_temp = malloc( sizeof(float) * x * y );
+    flat(z_map_temp, x, y, 0.5f);
+
+    if (video == NULL || !z_map){
+        printf("Could not create video or z_map\n");
+        return -1;
+    }
+
 
     //printf("gradient has length: %d", get_str_len(gradient))
     //allow overflow
     int d = 1;
-    for(int i = 0; i < 10; i = i + d){
-        waver(x, y, i, video, gradient);
-        print(x, y, video);
-        printf("%d", i);
+    float delta_t = .2f;
+    printf("Start\n");
+
+    // z_map[y * (x/2) + (x/2)] = 0.4f;
+
+    for(size_t i = 0; i < UINT_MAX; ++i){
+        wave( &z_map, &z_map_before, &z_map_temp, x, y, delta_t);
+        if (i % 100 == 0) tipwaterrandomly(z_map, x, y);
+
+        // print_brightness_map(z_map, x, y);
+
+        status s = render_brightness_map(video, z_map);
+        if (s < 0) {
+            printf("Error while rendering - Code: %d\n", s);
+            return -1;
+        }
+
+        print(video);
+        // printf("%d", i);
         usleep(10000);
         // rotate(gradient);
         clear();
-        if(i==10 || i==1){
-            d *= -1;
-        }
+        // if(i==10 || i==1){
+        //     d *= -1;
+        // }
     } 
     // draw(x, y, video, gradient);
     // print(x, y, video);
     free(video);
+    free(gradient);
     return 0;
 }
 

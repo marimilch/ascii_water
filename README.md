@@ -2,7 +2,7 @@
 
 ## How to build
 In your console, type
-```gcc ascii_water.c -o ascii_water```
+```sh build.sh```
 and press Enter.
 
 ## Usage
@@ -11,7 +11,6 @@ In your console, type
 and press Enter.
 
 ## Warning
-Does not look like water. The title sucks, lol.
 Will not work on not UNIX-based systems.
 
 # Thank you
