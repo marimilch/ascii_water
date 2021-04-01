@@ -1,7 +1,6 @@
 # ASCII_Water
 
-## Preview
-![Preview](https://marimilch.de/assets/clips/ascii-water/ascii-water.gif/GIF)
+[See a preview here](https://marimilch.de/projects#ascii-water)
 
 ## How to build
 In your console, type
