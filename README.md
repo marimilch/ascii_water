@@ -9,8 +9,10 @@ and press Enter.
 
 ## Usage
 In your console, type
-```./ascii_water <width> <height>```
+```./ascii_water <width> <height> <algorithm>```
 replacing parameters with desired values and press Enter.
+
+Setting ```<algorithm>``` to ```1``` simulates randomly dipping in, setting it to ```2``` trailing through the water.
 
 ## Warning
 Will not work on not UNIX-based systems.
