@@ -1,8 +1,14 @@
 # ASCII_Water
 
-[See a preview here](https://marimilch.de/projects#ascii-water)
+## Previews
+### Dipping Alagorithm
+https://user-images.githubusercontent.com/52521188/156247801-635c8124-505b-4eb9-8596-4a0287a5aecf.mp4
+
+### Wandering Algorithm
+https://user-images.githubusercontent.com/52521188/156247998-33b590ab-bc4b-4194-9a04-3ab9a1a0c5b4.mp4
 
 ## How to build
+
 In your console, type
 ```sh build.sh```
 and press Enter.
